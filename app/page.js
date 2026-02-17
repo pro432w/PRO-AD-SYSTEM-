@@ -19,13 +19,23 @@ export default function Home() {
   }, []);
 
   const showAd = () => {
-    if (typeof window !== 'undefined' && window.show_10619740) {
+    // Check if the ad function exists
+    if (typeof window !== 'undefined' && typeof window.show_10619740 === 'function') {
+      
       setBtnText('Loading Ad...');
+      
       window.show_10619740().then(() => {
+        // Ad viewed successfully
         handleSuccess();
+      }).catch((e) => {
+        // Ad failed or closed early
+        alert("Ad failed to load. Please try again.");
+        setBtnText('Watch Ad');
       });
+
     } else {
-      alert("Ad is loading. Please wait a moment and try again.");
+      // Script not loaded yet
+      alert("Ad is loading... Please wait 5 seconds and click again. (Check if AdBlock is OFF)");
     }
   };
 
@@ -43,6 +53,7 @@ export default function Home() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', padding: '20px', textAlign: 'center', backgroundColor: '#eff6ff' }}>
       
+      {/* Profile Section */}
       {user && (
         <div style={{ position: 'absolute', top: '20px', right: '20px', display: 'flex', alignItems: 'center', gap: '10px', background: '#ffffff', padding: '8px 15px', borderRadius: '20px', boxShadow: '0 2px 5px rgba(0,0,0,0.1)' }}>
           <span style={{ fontWeight: 'bold', color: '#1e40af' }}>{user.first_name}</span>
@@ -54,6 +65,7 @@ export default function Home() {
         </div>
       )}
 
+      {/* Main Card */}
       <div style={{ background: '#ffffff', padding: '40px', borderRadius: '20px', maxWidth: '400px', width: '100%', boxShadow: '0 10px 25px rgba(59, 130, 246, 0.15)' }}>
         <h1 style={{ color: '#1d4ed8', margin: '0 0 10px 0', fontSize: '24px', fontWeight: '800' }}>PRO ADs SYSTEM</h1>
         
