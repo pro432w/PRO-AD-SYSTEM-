@@ -1,5 +1,5 @@
 export const metadata = {
-  title: 'PRO ADs SYSTEM',
+  title: 'PRO ADs SYTEM',
 }
 
 export default function RootLayout({ children }) {
