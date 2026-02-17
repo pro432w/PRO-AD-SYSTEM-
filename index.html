@@ -6,18 +6,17 @@
     <title>PRO ADs SYSTEM</title>
     
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    
     <script src="//libtl.com/sdk.js" data-zone="10619740" data-sdk="show_10619740"></script>
 
     <style>
         :root {
-            --bg-color: #eff6ff;       /* Light Blue */
-            --card-bg: #ffffff;        /* White */
-            --text-primary: #1e3a8a;   /* Dark Blue */
-            --text-secondary: #64748b; /* Grayish Blue */
-            --btn-grad-1: #2563eb;     /* Blue */
-            --btn-grad-2: #1d4ed8;     /* Darker Blue */
-            --success: #16a34a;        /* Green */
+            --bg-color: #eff6ff;
+            --card-bg: #ffffff;
+            --text-primary: #1e3a8a;
+            --text-secondary: #64748b;
+            --btn-grad-1: #2563eb;
+            --btn-grad-2: #1d4ed8;
+            --success: #16a34a;
         }
 
         body {
@@ -33,7 +32,6 @@
             position: relative;
         }
 
-        /* Top Right Profile Section */
         .profile-corner {
             position: absolute;
             top: 15px;
@@ -74,7 +72,6 @@
             display: block;
         }
 
-        /* Main Card */
         .card {
             background: var(--card-bg);
             width: 85%;
@@ -101,7 +98,6 @@
             line-height: 1.5;
         }
 
-        /* Timer Display */
         .timer-display {
             font-size: 32px;
             font-weight: 800;
@@ -111,10 +107,9 @@
             background: #f0f9ff;
             border-radius: 12px;
             border: 2px dashed #bfdbfe;
-            display: none; /* Hidden by default */
+            display: none;
         }
 
-        /* Buttons */
         .btn {
             width: 100%;
             padding: 16px;
@@ -129,15 +124,8 @@
             transition: transform 0.1s;
         }
 
-        .btn:active {
-            transform: scale(0.98);
-        }
-
-        .btn:disabled {
-            background: #94a3b8;
-            cursor: not-allowed;
-            box-shadow: none;
-        }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { background: #94a3b8; cursor: not-allowed; box-shadow: none; }
 
         .status-text {
             margin-top: 15px;
@@ -145,7 +133,6 @@
             color: var(--text-secondary);
             min-height: 18px;
         }
-
     </style>
 </head>
 <body>
@@ -178,87 +165,81 @@
     </div>
 
     <script>
-        // 1. Init Telegram
         const tg = window.Telegram.WebApp;
         tg.ready();
         tg.expand();
 
-        // 2. Load User Profile
+        // Load User
         const user = tg.initDataUnsafe?.user;
         if (user) {
             document.getElementById('profile-section').style.display = 'flex';
             document.getElementById('user-name').innerText = user.first_name;
             document.getElementById('user-id').innerText = "@" + (user.username || user.id);
-            
-            if (user.photo_url) {
-                document.getElementById('user-pic').src = user.photo_url;
-            } else {
-                // Placeholder if no photo
-                document.getElementById('user-pic').style.display = 'none';
-            }
+            if (user.photo_url) document.getElementById('user-pic').src = user.photo_url;
+            else document.getElementById('user-pic').style.display = 'none';
         }
 
-        // 3. Check Expiry Logic from URL
-        // Bot sends URL like: https://app.vercel.app/?expiry=1740000000000
+        // --- FIXED LOGIC STARTS HERE ---
+        
+        // 1. Check URL param (Server Time)
         const urlParams = new URLSearchParams(window.location.search);
-        const expiryTime = parseInt(urlParams.get('expiry') || '0');
+        let expiryTime = parseInt(urlParams.get('expiry') || '0');
+        
+        // 2. Check Local Storage (Browser Time - in case user reloads)
+        const localExpiry = parseInt(localStorage.getItem('bot_expiry_v1') || '0');
+
+        // Use whichever is bigger
+        if (localExpiry > expiryTime) {
+            expiryTime = localExpiry;
+        }
+
         const now = Date.now();
 
         if (expiryTime > now) {
-            // Valid Time Found -> Show Timer
             startTimer(expiryTime);
         } else {
-            // No Time -> Show Ad Button
             document.getElementById('ad-view').style.display = 'block';
             document.getElementById('timer-view').style.display = 'none';
         }
 
-        // 4. AD FUNCTION (Monetag)
         function watchAd() {
             const btn = document.getElementById('btn-watch');
             const log = document.getElementById('status-log');
 
-            // Check if SDK loaded
             if (typeof show_10619740 === 'function') {
-                
                 btn.disabled = true;
                 btn.innerText = "⌛ Loading Ad...";
-                log.innerText = "Please wait, fetching ad...";
+                log.innerText = "Please wait...";
 
                 show_10619740().then(() => {
-                    // Ad Success
-                    log.innerText = "Ad Watched Successfully!";
+                    log.innerText = "Success! Unlocking...";
                     
-                    // Switch to Timer View (Simulate 24h start visually)
+                    // 1. Save to Local Storage immediately
                     const newExpiry = Date.now() + (24 * 60 * 60 * 1000);
+                    localStorage.setItem('bot_expiry_v1', newExpiry);
+                    
+                    // 2. Start Timer Visually
                     startTimer(newExpiry);
 
-                    // Send Data to Bot
+                    // 3. Tell Bot
                     tg.sendData("ad_watched_success");
                     
-                    // Close window after 2 seconds
-                    setTimeout(() => {
-                        tg.close();
-                    }, 2000);
+                    // 4. Close App
+                    setTimeout(() => tg.close(), 2000);
 
                 }).catch(e => {
-                    // Ad Failed/Closed
                     btn.disabled = false;
                     btn.innerText = "❌ Try Again";
-                    log.innerText = "Ad failed to load or was closed.";
+                    log.innerText = "Ad failed. Please try again.";
                 });
-
             } else {
-                log.innerText = "Ad System Loading... (Check Internet/AdBlock)";
-                // Retry check in 1s
+                log.innerText = "AdBlock detected or Slow Internet. Waiting...";
                 setTimeout(() => {
                     if(typeof show_10619740 === 'function') watchAd();
-                    else alert("Script not loaded. Please refresh.");
-                }, 1000);
+                }, 2000);
             }
         }
 
-        // 5. Timer Logic
         function startTimer(endTime) {
             document.getElementById('ad-view').style.display = 'none';
             document.getElementById('timer-view').style.display = 'block';
@@ -267,23 +248,19 @@
 
             const interval = setInterval(() => {
                 const distance = endTime - Date.now();
-
                 if (distance < 0) {
                     clearInterval(interval);
-                    location.reload(); // Reload to show ad button again
+                    localStorage.removeItem('bot_expiry_v1'); // Clear storage
+                    location.reload();
                     return;
                 }
-
-                const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-                const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-                const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-                display.innerText = 
-                    (hours < 10 ? "0" + hours : hours) + ":" + 
-                    (minutes < 10 ? "0" + minutes : minutes) + ":" + 
-                    (seconds < 10 ? "0" + seconds : seconds);
+                const h = Math.floor((distance % (86400000)) / 3600000);
+                const m = Math.floor((distance % 3600000) / 60000);
+                const s = Math.floor((distance % 60000) / 1000);
+                display.innerText = `${h<10?'0'+h:h}:${m<10?'0'+m:m}:${s<10?'0'+s:s}`;
             }, 1000);
         }
     </script>
 </body>
-</html>
+    </html>
+    
